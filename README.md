@@ -1,6 +1,7 @@
 # Student_Freelance_Marketplace
 # Student Freelance Marketplace
 
+
 A full-stack freelance marketplace platform connecting students with clients. Built with Node.js, Express, TypeScript, React, Vite, and MongoDB.
 
 ## Project Structure

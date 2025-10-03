@@ -1,7 +1,7 @@
-import mongoose, { Schema, type Document } from "mongoose"
+import mongoose, { type Document, Schema } from "mongoose"
 import bcrypt from "bcryptjs"
 
-export interface IUserDocument extends Document {
+export interface IUser extends Document {
   email: string
   password: string
   role: "student" | "client" | "admin"
@@ -9,10 +9,15 @@ export interface IUserDocument extends Document {
   lastName: string
   phone?: string
   avatar?: string
+  bio?: string
+  skills?: string[]
+  rating?: number
+  createdAt: Date
+  updatedAt: Date
   comparePassword(candidatePassword: string): Promise<boolean>
 }
 
-const UserSchema = new Schema(
+const userSchema = new Schema<IUser>(
   {
     email: {
       type: String,
@@ -48,6 +53,20 @@ const UserSchema = new Schema(
     avatar: {
       type: String,
     },
+    bio: {
+      type: String,
+    },
+    skills: [
+      {
+        type: String,
+      },
+    ],
+    rating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
   },
   {
     timestamps: true,
@@ -55,19 +74,19 @@ const UserSchema = new Schema(
 )
 
 // Hash password before saving
-UserSchema.pre("save", async function (next) {
+userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
     return next()
   }
+
   const salt = await bcrypt.genSalt(10)
   this.password = await bcrypt.hash(this.password, salt)
   next()
 })
 
 // Compare password method
-UserSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
+userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password)
 }
 
-// ✅ Prevent OverwriteModelError
-export default mongoose.models.User || mongoose.model<IUserDocument>("User", UserSchema)
+export default mongoose.model<IUser>("User", userSchema)

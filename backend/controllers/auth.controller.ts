@@ -2,7 +2,6 @@ import type { Request, Response } from "express"
 import jwt from "jsonwebtoken"
 import User from "../models/User.js"
 
-
 const generateToken = (userId: string): string => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET || "your-secret-key", {
     expiresIn: process.env.JWT_EXPIRE || "7d",

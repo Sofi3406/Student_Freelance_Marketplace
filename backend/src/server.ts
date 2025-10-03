@@ -1,16 +1,16 @@
 import express from "express"
 import cors from "cors"
 import dotenv from "dotenv"
-import connectDB from "./config/database"
-import authRoutes from "./routes/auth.routes"
-import userRoutes from "./routes/user.routes"
-import serviceRoutes from "./routes/service.routes"
-import jobRoutes from "./routes/job.routes"
-import applicationRoutes from "./routes/application.routes"
-import orderRoutes from "./routes/order.routes"
-import reviewRoutes from "./routes/review.routes"
-import messageRoutes from "./routes/message.routes"
-import { errorHandler } from "./middleware/error.middleware"
+import connectDB from "./config/database.js"
+import authRouter from "../routes/auth.routes.js";
+import userRoutes from "./routes/user.routes.js"
+import serviceRoutes from "./routes/service.routes.js"
+import jobRoutes from "./routes/job.routes.js"
+import applicationRoutes from "./routes/application.routes.js"
+import orderRoutes from "./routes/order.routes.js"
+import reviewRoutes from "./routes/review.routes.js"
+import messageRoutes from "./routes/message.routes.js"
+import { errorHandler } from "./middleware/error.middleware.js"
 
 dotenv.config()
 
@@ -23,7 +23,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 // Routes
-app.use("/api/auth", authRoutes)
+app.use("/api/auth", authRouter)
 app.use("/api/users", userRoutes)
 app.use("/api/services", serviceRoutes)
 app.use("/api/jobs", jobRoutes)
