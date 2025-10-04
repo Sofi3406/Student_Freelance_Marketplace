@@ -218,3 +218,231 @@ o Generate Reports → system statistics (earnings, usage, etc.).
 ER Diagram (Entity-Relationship Diagram)
 
 
+
+
+📊 Entities & Attributes
+1. Student (Freelancer)
+o student_id (PK)
+o name
+o email
+o password
+o skills
+o portfolio
+o rating
+2. Client (Job Poster)
+o client_id (PK)
+o name
+o email
+o password
+o organization (optional)
+3. Admin (Platform Owner)
+o admin_id (PK)
+o name
+o email
+o role
+4. Service (offered by Students)
+o service_id (PK)
+o title
+o description
+o price
+o student_id (FK → Student)
+5. Job (posted by Clients)
+o job_id (PK)
+o title
+o description
+o budget
+o status (open, in-progress, completed)
+o client_id (FK → Client)
+o student_id (FK → Student, nullable until hired)
+6. Payment
+o payment_id (PK)
+o amount
+o method (card, PayPal, wallet, etc.)
+o status (pending, completed, failed)
+o job_id (FK → Job)
+o student_id (FK → Student)
+7. Review
+o review_id (PK)
+o rating (1–5)
+o comment
+o student_id (FK → Student)
+o client_id (FK → Client)
+
+🔗 Relationships
+• Student → Service: One student can offer many services.
+• Client → Service: Clients can browse multiple services.
+• Client → Job: A client can post many jobs.
+• Student → Job: A student can apply to multiple jobs, and one job can have multiple applicants.
+• Client → Student (Hire): A client can hire a student for a job.
+• Payment → Job: Each payment is linked to a job.
+• Payment → Student: The payment goes to the hired student.
+• Review → Student: Reviews are written about students.
+• Review → Client: Each review is written by a client.
+• Admin → All: Admin manages users, jobs, and services.
+
+✨ In short:
+• Students create profiles, post services, and apply for jobs.
+• Clients hire students, pay, and leave reviews.
+• Admins supervise and keep the platform safe.
+
+
+🗄 SQL Database Schema
+-- ===========================
+-- USERS
+-- ===========================
+
+CREATE TABLE Students (
+    student_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    skills TEXT,
+    portfolio TEXT,
+    rating DECIMAL(2,1) DEFAULT 0.0
+);
+
+CREATE TABLE Clients (
+    client_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    organization VARCHAR(150)
+);
+
+CREATE TABLE Admins (
+    admin_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    role VARCHAR(50) DEFAULT 'moderator'
+);
+
+-- ===========================
+-- SERVICES
+-- ===========================
+
+CREATE TABLE Services (
+    service_id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(150) NOT NULL,
+    description TEXT NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    student_id INT,
+    FOREIGN KEY (student_id) REFERENCES Students(student_id) ON DELETE CASCADE
+);
+
+-- ===========================
+-- JOBS
+-- ===========================
+
+CREATE TABLE Jobs (
+    job_id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(150) NOT NULL,
+    description TEXT NOT NULL,
+    budget DECIMAL(10,2) NOT NULL,
+    status ENUM('open','in-progress','completed') DEFAULT 'open',
+    client_id INT,
+    student_id INT NULL,
+    FOREIGN KEY (client_id) REFERENCES Clients(client_id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES Students(student_id) ON DELETE SET NULL
+);
+
+-- ===========================
+-- PAYMENTS
+-- ===========================
+
+CREATE TABLE Payments (
+    payment_id INT PRIMARY KEY AUTO_INCREMENT,
+    amount DECIMAL(10,2) NOT NULL,
+    method ENUM('card','paypal','wallet') DEFAULT 'wallet',
+    status ENUM('pending','completed','failed') DEFAULT 'pending',
+    job_id INT,
+    student_id INT,
+    FOREIGN KEY (job_id) REFERENCES Jobs(job_id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES Students(student_id) ON DELETE CASCADE
+);
+
+-- ===========================
+-- REVIEWS
+-- ===========================
+
+CREATE TABLE Reviews (
+    review_id INT PRIMARY KEY AUTO_INCREMENT,
+    rating INT CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+    student_id INT,
+    client_id INT,
+    FOREIGN KEY (student_id) REFERENCES Students(student_id) ON DELETE CASCADE,
+    FOREIGN KEY (client_id) REFERENCES Clients(client_id) ON DELETE CASCADE
+);
+
+✅ This schema covers:
+• Students, Clients, Admins (users)
+• Services (offered by students)
+Jobs (posted by clients, linked to students when hired)
+• Payments (secure transactions for jobs)
+• Reviews (feedback system)
+
+
+🌐 API Endpoint Design
+1. Authentication & Users
+
+``` 
+POST   /api/auth/register           → Register as Student or Client  
+POST   /api/auth/login              → Login (returns JWT token)  
+POST   /api/auth/logout             → Logout (invalidate token)  
+GET    /api/users/profile           → Get logged-in user profile  
+PUT    /api/users/profile           → Update profile  
+```
+2. Students
+GET    /api/students                → List all students (Admin only)  
+GET    /api/students/:id            → Get student profile  
+PUT    /api/students/:id            → Update student (self or Admin)  
+DELETE /api/students/:id            → Delete student (Admin only)  
+
+3. Clients
+GET    /api/clients                 → List all clients (Admin only)  
+GET    /api/clients/:id             → Get client profile  
+PUT    /api/clients/:id             → Update client (self or Admin)  
+DELETE /api/clients/:id             → Delete client (Admin only)  
+
+4,Services (offered by Students)
+POST   /api/services                → Create new service (Student only)  
+GET    /api/services                → Browse all services  
+GET    /api/services/:id            → Get single service  
+PUT    /api/services/:id            → Update service (Owner Student only)  
+DELETE /api/services/:id            → Delete service (Owner Student/Admin)  
+5,Jobs (posted by Clients)
+POST   /api/jobs                    → Post new job (Client only)  
+GET    /api/jobs                    → Browse all jobs  
+GET    /api/jobs/:id                → Get job details  
+PUT    /api/jobs/:id                → Update job (Owner Client/Admin)  
+DELETE /api/jobs/:id                → Delete job (Owner Client/Admin)  
+
+POST   /api/jobs/:id/apply          → Apply to job (Student only)  
+POST   /api/jobs/:id/hire/:studentId → Hire student for job (Client only)  
+
+6. Payments
+POST   /api/payments                → Make payment (Client only)  
+GET    /api/payments/:id            → Get payment details  
+GET    /api/payments/student/:id    → Student payment history  
+GET    /api/payments/client/:id     → Client payment history  
+7, Reviews
+POST   /api/reviews                 → Add review (Client → Student)  
+GET    /api/reviews/student/:id     → Get reviews for a student  
+
+8. Admin (Platform Management)
+GET    /api/admin/reports           → View platform statistics  
+PUT    /api/admin/resolve-dispute   → Resolve disputes  
+
+🔐 Authentication & Roles
+• JWT Token for login sessions.
+• Role-based middleware:
+o Student → Can create services, apply to jobs.
+o Client → Can post jobs, hire students, pay.
+o Admin → Full control (manage users, jobs, services).
+
+✨ So far, you now have:
+1. ✅ Use Case Diagram
+2. ✅ ER Diagram
+3. ✅ Database Schema (SQL)
+4. ✅ REST API Design
+
