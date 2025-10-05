@@ -3,16 +3,16 @@ import jwt from "jsonwebtoken"
 import User from "../models/User.js"
 
 const generateToken = (userId: string): string => {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET || "your-secret-key", {
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET || "default-secret", {
     expiresIn: process.env.JWT_EXPIRE || "7d",
   })
 }
 
+// ✅ Register
 export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, role, firstName, lastName } = req.body
 
-    // Validate required fields
     if (!email || !password || !role || !firstName || !lastName) {
       return res.status(400).json({
         success: false,
@@ -20,7 +20,6 @@ export const register = async (req: Request, res: Response) => {
       })
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email })
     if (existingUser) {
       return res.status(400).json({
@@ -29,7 +28,6 @@ export const register = async (req: Request, res: Response) => {
       })
     }
 
-    // Create new user
     const user = await User.create({
       email,
       password,
@@ -38,10 +36,8 @@ export const register = async (req: Request, res: Response) => {
       lastName,
     })
 
-    // Generate token
     const token = generateToken(user._id.toString())
 
-    // Return user data without password
     const userData = {
       id: user._id,
       email: user.email,
@@ -65,11 +61,11 @@ export const register = async (req: Request, res: Response) => {
   }
 }
 
+// ✅ Login
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body
 
-    // Validate required fields
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -77,8 +73,8 @@ export const login = async (req: Request, res: Response) => {
       })
     }
 
-    // Find user by email
-    const user = await User.findOne({ email })
+    // Explicitly select password
+    const user = await User.findOne({ email }).select("+password")
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -86,7 +82,6 @@ export const login = async (req: Request, res: Response) => {
       })
     }
 
-    // Check password
     const isPasswordValid = await user.comparePassword(password)
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -95,10 +90,8 @@ export const login = async (req: Request, res: Response) => {
       })
     }
 
-    // Generate token
     const token = generateToken(user._id.toString())
 
-    // Return user data without password
     const userData = {
       id: user._id,
       email: user.email,
@@ -122,8 +115,10 @@ export const login = async (req: Request, res: Response) => {
   }
 }
 
+// ✅ Get Current User
 export const getMe = async (req: Request, res: Response) => {
   try {
+    // @ts-ignore - req.user is added by middleware
     const user = await User.findById(req.user?.id).select("-password")
 
     if (!user) {

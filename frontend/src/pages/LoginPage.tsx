@@ -18,24 +18,25 @@ export default function LoginPage() {
   const navigate = useNavigate()
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
+  e.preventDefault()
+  setError("")
+  setLoading(true)
 
-    try {
-      await login(email, password)
-      const user = JSON.parse(localStorage.getItem("user") || "{}")
-      navigate(`/${user.role}/dashboard`)
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Login failed")
-    } finally {
-      setLoading(false)
-    }
+  try {
+    const user = await login(email, password)
+    navigate(`/${user.role}/dashboard`, { replace: true })
+  } catch (err: any) {
+    setError(err.response?.data?.message || "Login failed")
+  } finally {
+    setLoading(false)
   }
+}
+
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {/* Header */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <GraduationCap className="h-10 w-10 text-primary" />
@@ -45,6 +46,7 @@ export default function LoginPage() {
           <p className="text-muted-foreground">Sign in to your account to continue</p>
         </div>
 
+        {/* Card */}
         <Card>
           <CardHeader>
             <CardTitle>Login</CardTitle>
@@ -95,6 +97,7 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
+        {/* Demo accounts */}
         <div className="mt-6 p-4 bg-card border border-border rounded-lg">
           <p className="text-sm font-medium mb-2">Demo Accounts:</p>
           <div className="text-xs text-muted-foreground space-y-1">

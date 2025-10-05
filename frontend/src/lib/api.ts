@@ -1,34 +1,39 @@
-import axios from "axios"
+import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+// ✅ Make sure .env file has: VITE_API_URL=http://localhost:5000/api
+const API_URL = import.meta.env.VITE_API_URL?.trim() || "http://localhost:5000/api";
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
   },
-})
+});
 
-// Add token to requests
+// ✅ Add token if available
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token")
+  const token = localStorage.getItem("token");
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+    config.headers.Authorization = `Bearer ${token}`;
   }
-  return config
-})
+  return config;
+});
 
-// Handle auth errors
+// ✅ Handle unauthorized access
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("token")
-      localStorage.removeItem("user")
-      window.location.href = "/login"
+    // Debug network errors
+    if (!error.response) {
+      console.error("Network error or backend not reachable:", error);
     }
-    return Promise.reject(error)
-  },
-)
 
-export { api }
+    if (error.response?.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+    }
+
+    return Promise.reject(error);
+  }
+);

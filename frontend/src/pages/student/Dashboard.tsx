@@ -1,10 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { api } from "../../lib/api"
+import { useAuth } from "@/contexts/AuthContext"
 
-export default function StudentDashboard() {
+export default function Dashboard() {
+  const { user, loading, logout } = useAuth()
+  const navigate = useNavigate()
   const [stats, setStats] = useState({
     activeServices: 0,
     totalEarnings: 0,
@@ -15,8 +18,14 @@ export default function StudentDashboard() {
   const [applications, setApplications] = useState<any[]>([])
 
   useEffect(() => {
-    loadDashboardData()
-  }, [])
+    // 🧠 Only load data after auth is done & user exists
+    if (!loading && !user) {
+      navigate("/login")
+    }
+    if (!loading && user) {
+      loadDashboardData()
+    }
+  }, [user, loading])
 
   const loadDashboardData = async () => {
     try {
@@ -28,13 +37,12 @@ export default function StudentDashboard() {
       setServices(servicesRes.data.slice(0, 3))
       setApplications(applicationsRes.data.slice(0, 3))
 
-      // Calculate stats
       const activeServices = servicesRes.data.filter((s: any) => s.status === "active").length
       const pendingApps = applicationsRes.data.filter((a: any) => a.status === "pending").length
 
       setStats({
         activeServices,
-        totalEarnings: 0, // Will be calculated from orders
+        totalEarnings: 0,
         activeOrders: 0,
         pendingApplications: pendingApps,
       })
@@ -42,6 +50,18 @@ export default function StudentDashboard() {
       console.error("Failed to load dashboard data:", error)
     }
   }
+
+  // 🧠 While waiting for AuthContext
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center text-white">
+        Loading your dashboard...
+      </div>
+    )
+  }
+
+  // 🧠 Avoid flash before redirect
+  if (!user) return null
 
   return (
     <div className="min-h-screen bg-zinc-950">
@@ -76,15 +96,20 @@ export default function StudentDashboard() {
                 </Link>
               </div>
             </div>
-            <Link to="/login" className="text-sm font-medium text-zinc-400 hover:text-white">
+            <button
+              onClick={logout}
+              className="text-sm font-medium text-zinc-400 hover:text-white"
+            >
               Logout
-            </Link>
+            </button>
           </div>
         </div>
       </nav>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-white mb-8">Student Dashboard</h1>
+        <h1 className="text-3xl font-bold text-white mb-8">
+          Welcome, {user.firstName} 👋
+        </h1>
 
         {/* Stats Grid */}
         <div className="grid gap-6 md:grid-cols-4 mb-8">
@@ -173,8 +198,8 @@ export default function StudentDashboard() {
                       application.status === "pending"
                         ? "bg-yellow-500/10 text-yellow-400"
                         : application.status === "accepted"
-                          ? "bg-green-500/10 text-green-400"
-                          : "bg-red-500/10 text-red-400"
+                        ? "bg-green-500/10 text-green-400"
+                        : "bg-red-500/10 text-red-400"
                     }`}
                   >
                     {application.status}
