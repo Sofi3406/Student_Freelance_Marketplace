@@ -1,45 +1,44 @@
-"use client"
+"use client";
 
-import { Navigate } from "react-router-dom"
-import { useAuth } from "../contexts/AuthContext"
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 interface PrivateRouteProps {
-  children: React.ReactNode
-  role?: "student" | "client" | "admin"
+  children: React.ReactNode;
+  role?: "student" | "client" | "admin";
 }
 
 export default function PrivateRoute({ children, role }: PrivateRouteProps) {
-  const { user, loading } = useAuth()
+  // Use the loading and user states provided by the context.
+  const { user, loading } = useAuth();
 
-  // ✅ While verifying auth state
+  // 1. Loading Check: This is the single source of truth for initialization.
+  // We wait until the AuthProvider has finished checking localStorage.
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-gray-200">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-xl text-primary font-semibold p-4 rounded-lg shadow-md animate-pulse">
+          Loading Application...
+        </div>
       </div>
-    )
+    );
   }
 
-  // ✅ If not logged in and no token in localStorage → redirect
-  const token = localStorage.getItem("token")
-  if (!user && !token) {
-    return <Navigate to="/login" replace />
+  // 2. Unauthenticated Check: If loading is complete and there is no user, redirect to login.
+  // This handles the case where the user has logged out or the token expired.
+  if (!user) {
+    // Navigate hook ensures a clean, declarative redirect.
+    return <Navigate to="/login" replace />;
   }
 
-  // ✅ If user exists but role mismatch → redirect to correct dashboard
-  if (role && user && user.role !== role) {
-    return <Navigate to={`/${user.role}/dashboard`} replace />
+  // 3. Authorization Check (Role Mismatch):
+  // If the user is authenticated but accessing a route meant for a different role,
+  // redirect them to their own dashboard.
+  if (role && user.role !== role) {
+    console.warn(`Access denied. Redirecting ${user.role} to their dashboard.`);
+    return <Navigate to={`/${user.role}/dashboard`} replace />;
   }
 
-  // ✅ If token exists but user not yet ready → show “verifying” screen
-  if (token && !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-gray-200">Verifying session...</div>
-      </div>
-    )
-  }
-
-  // ✅ Authenticated and authorized → show the page
-  return <>{children}</>
+  // 4. Authorized: Render the children (the requested page).
+  return <>{children}</>;
 }

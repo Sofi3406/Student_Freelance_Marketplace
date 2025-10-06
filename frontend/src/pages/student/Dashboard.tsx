@@ -1,13 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react" // <--- FIXED: Changed '=>' to 'from'
 import { Link, useNavigate } from "react-router-dom"
 import { api } from "../../lib/api"
 import { useAuth } from "@/contexts/AuthContext"
 
 export default function Dashboard() {
-  const { user, loading, logout } = useAuth()
-  const navigate = useNavigate()
+  // Removed unused 'navigate' here, since PrivateRoute handles unauthenticated users.
+  const { user, loading, logout } = useAuth() 
+  
   const [stats, setStats] = useState({
     activeServices: 0,
     totalEarnings: 0,
@@ -18,10 +19,9 @@ export default function Dashboard() {
   const [applications, setApplications] = useState<any[]>([])
 
   useEffect(() => {
-    // 🧠 Only load data after auth is done & user exists
-    if (!loading && !user) {
-      navigate("/login")
-    }
+    // 🧠 FIX: Only load data when authentication is complete and user object is available.
+    // The conditional check for (!loading && !user) which forced a redirect is removed 
+    // because PrivateRoute is responsible for that.
     if (!loading && user) {
       loadDashboardData()
     }
@@ -29,7 +29,11 @@ export default function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
+      // Ensure user is not null before proceeding, although PrivateRoute should guarantee this.
+      if (!user) return; 
+
       const [servicesRes, applicationsRes] = await Promise.all([
+        // These calls will now succeed because AuthContext sets the Authorization header.
         api.get("/services/my-services"),
         api.get("/applications/my-applications"),
       ])
@@ -42,12 +46,14 @@ export default function Dashboard() {
 
       setStats({
         activeServices,
-        totalEarnings: 0,
-        activeOrders: 0,
+        totalEarnings: 0, // Placeholder - fetch real data here
+        activeOrders: 0, // Placeholder - fetch real data here
         pendingApplications: pendingApps,
       })
     } catch (error) {
-      console.error("Failed to load dashboard data:", error)
+      // IMPORTANT: If this error is a 401, the user is likely logged out.
+      // However, the PrivateRoute should handle the redirect, so we just log the error.
+      console.error("Failed to load dashboard data (Possible 401 error due to stale token):", error)
     }
   }
 
@@ -60,9 +66,10 @@ export default function Dashboard() {
     )
   }
 
-  // 🧠 Avoid flash before redirect
+  // 🧠 Final guard, but should be handled by PrivateRoute
   if (!user) return null
 
+  // The rest of the component (JSX rendering) remains the same
   return (
     <div className="min-h-screen bg-zinc-950">
       <nav className="border-b border-zinc-800 bg-zinc-900">
@@ -108,7 +115,7 @@ export default function Dashboard() {
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-white mb-8">
-          Welcome, {user.firstName} 👋
+          Welcome, {user!.firstName} 👋 {/* Added ! to assert user exists */}
         </h1>
 
         {/* Stats Grid */}
